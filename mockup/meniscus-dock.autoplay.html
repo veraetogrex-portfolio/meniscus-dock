@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T03 Meniscus Dock — the dock melts around the active tab</title>
+<link rel="stylesheet" href="_shared/nocturne.css">
+<style>
+  #stage{--c:124,108,255;background:radial-gradient(ellipse 70% 60% at 50% 40%,#0D0F17 0%,var(--void) 72%)}
+
+  /* ambient tint following the bead colour */
+  .ambient{position:absolute;left:50%;top:-260px;width:1200px;height:620px;margin-left:-600px;border-radius:50%;pointer-events:none;z-index:0;
+    background:radial-gradient(closest-side,rgba(var(--c),.16),rgba(var(--c),0) 100%)}
+
+  /* header */
+  .head{position:absolute;left:0;right:0;top:112px;text-align:center;z-index:2}
+  .kicker{display:inline-flex;align-items:center;gap:12px;font:500 15px var(--f-mono);letter-spacing:.22em;color:var(--text-3);text-transform:uppercase}
+  .kicker i{width:9px;height:9px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 12px rgba(var(--c),.9)}
+  .kicker b{font-weight:500;color:var(--text-2)}
+  .tbox{position:relative;height:116px;margin-top:14px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%)}
+  .tbox .t{position:absolute;left:0;right:0;top:0;height:116px;line-height:116px;font:700 96px/116px var(--f-display);text-transform:uppercase;letter-spacing:.03em;color:var(--text);will-change:transform}
+  .sub{margin-top:8px;height:30px;font:400 22px/30px var(--f-text);color:var(--text-2)}
+  .sub b{color:var(--text);font-weight:500}
+
+  /* content plates */
+  .plates{position:absolute;left:0;right:0;top:392px;display:flex;justify-content:center;gap:24px;z-index:2}
+  .plate{position:relative;width:300px;height:204px;border-radius:20px;padding:24px 26px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border:1px solid var(--line);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
+  .plate .in{will-change:transform,opacity}
+  .plate .k{font:500 13px var(--f-mono);letter-spacing:.16em;color:var(--text-3);text-transform:uppercase;white-space:nowrap}
+  .plate .v{margin-top:14px;font:600 56px/1 var(--f-display);letter-spacing:.01em;color:var(--text)}
+  .plate .v small{font:500 22px var(--f-text);color:var(--text-2);margin-left:6px;letter-spacing:0}
+  .plate .bar{position:absolute;left:26px;right:26px;bottom:28px;height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+  .plate .bar i{display:block;height:100%;border-radius:3px;background:rgb(var(--c));box-shadow:0 0 12px rgba(var(--c),.7);transform-origin:0 50%;transition:transform .5s var(--ease-out)}
+  .plate .note{position:absolute;left:26px;bottom:46px;font:400 16px var(--f-text);color:var(--text-2)}
+
+  /* dock */
+  .glow{position:absolute;left:340px;top:770px;width:760px;height:150px;border-radius:50%;pointer-events:none;z-index:1;
+    background:radial-gradient(closest-side,rgba(var(--c),.42),rgba(var(--c),0));filter:blur(10px)}
+  .dock{position:absolute;left:0;top:0;width:1440px;height:900px;pointer-events:none;z-index:3;overflow:visible}
+  .icons{position:absolute;left:360px;top:704px;width:720px;height:108px;z-index:4}
+  .ic{position:absolute;top:0;width:112px;height:108px;margin-left:-56px;display:flex;flex-direction:column;align-items:center;padding-top:30px;gap:10px;color:var(--text-2);outline:none}
+  .ic svg{width:30px;height:30px;transition:color .2s}
+  .ic span{font:500 12px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+  .ic.li-hover svg,.ic:hover svg{color:#fff}
+  .ic.on span{color:rgb(var(--c))}
+  .ic:focus-visible span{color:#fff;text-decoration:underline;text-underline-offset:4px}
+
+  .bead{position:absolute;left:0;top:0;width:68px;height:68px;margin:-34px 0 0 -34px;border-radius:50%;z-index:5;cursor:grab;touch-action:none;will-change:transform;
+    background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.75) 0,rgba(255,255,255,0) 34%),radial-gradient(circle at 50% 55%,rgb(var(--c)) 0,rgb(var(--c)) 58%,rgba(var(--c),.85) 100%);
+    box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 -6px 14px rgba(0,0,0,.25) inset,0 0 34px 6px rgba(var(--c),.55),0 0 90px 20px rgba(var(--c),.25)}
+  .bead.drag{cursor:grabbing}
+  .bead svg{position:absolute;left:19px;top:19px;width:30px;height:30px;color:#0A0B12}
+  .shadow{position:absolute;left:0;top:0;width:90px;height:24px;margin:-12px 0 0 -45px;border-radius:50%;z-index:3;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(var(--c),.55),rgba(var(--c),0));will-change:transform}
+
+  /* payoff: the section colour washes the whole screen on release */
+  .wash{position:absolute;left:0;top:0;width:3200px;height:3200px;margin:-1600px 0 0 -1600px;border-radius:50%;pointer-events:none;z-index:1;opacity:0;will-change:transform,opacity}
+  .wring{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;z-index:1;opacity:0;border:3px solid rgb(var(--c))}
+  .hint{position:absolute;left:0;right:0;top:846px;text-align:center;font:500 12px var(--f-mono);letter-spacing:.18em;color:var(--text-3);text-transform:uppercase;z-index:2}
+</style>
+</head>
+<body>
+<div id="stage" class="grid" data-title="T03 Meniscus Dock" data-url="veraetogrex-portfolio.github.io/overview">
+  <div class="ambient"></div>
+
+  <div class="head">
+    <div class="kicker"><i></i>Veraetogrex · <b id="idx">01 / 05</b></div>
+    <div class="tbox" id="tbox"></div>
+    <div class="sub" id="sub"></div>
+  </div>
+
+  <div class="plates" id="plates"></div>
+
+  <div class="wash" id="wash"></div><div class="wring" id="wring"></div>
+  <div class="glow"></div>
+  <svg class="dock" id="dock" viewBox="0 0 1440 900">
+    <defs>
+      <linearGradient id="fillG" x1="0" y1="690" x2="0" y2="812" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#1A1C27"/><stop offset="1" stop-color="#0E1017"/>
+      </linearGradient>
+      <linearGradient id="edgeG" x1="360" y1="0" x2="1080" y2="0" gradientUnits="userSpaceOnUse">
+        <stop id="e0" offset="0" stop-color="rgba(255,255,255,.10)"/>
+        <stop id="e1" offset=".3" stop-color="rgba(255,255,255,.14)"/>
+        <stop id="e2" offset=".5" stop-color="#7C6CFF"/>
+        <stop id="e3" offset=".7" stop-color="rgba(255,255,255,.14)"/>
+        <stop id="e4" offset="1" stop-color="rgba(255,255,255,.10)"/>
+      </linearGradient>
+      <radialGradient id="pool" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 740) scale(130 70)">
+        <stop id="p0" offset="0" stop-color="#7C6CFF" stop-opacity=".30"/><stop id="p1" offset="1" stop-color="#7C6CFF" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <path id="dockFill" fill="url(#fillG)"/>
+    <path id="dockPool" fill="url(#pool)"/>
+    <path id="dockEdge" fill="none" stroke="url(#edgeG)" stroke-width="1.6"/>
+  </svg>
+  <div class="shadow" id="shadow"></div>
+
+  <div class="icons" id="icons"></div>
+  <div class="bead" id="bead" role="slider" aria-label="Active section" tabindex="-1"></div>
+
+  <div class="hint">Drag the bead · ← → keys</div>
+  <div class="status-line"><span>Veraetogrex · T03</span><span>Meniscus dock</span></div>
+</div>
+
+<script>window.AUTOPLAY = true;</script>
+<script src="_shared/stage.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const stage = $('#stage');
+const ICONS = [
+  '<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
+  '<path d="M12 3.2l8.6 4.6L12 12.4 3.4 7.8z"/><path d="M3.4 12.2L12 16.8l8.6-4.6"/><path d="M3.4 16.4L12 21l8.6-4.6"/>',
+  '<path d="M3.5 13.5l2.6-8h11.8l2.6 8V19a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 19z"/><path d="M3.5 13.5h5l1.2 2.6h4.6l1.2-2.6h5"/>',
+  '<rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none"/>',
+  '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+];
+const svgI = (i, sw = 1.7) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[i]}</svg>`;
+
+// Inbox is Ion per the scenario; the five colours are all used
+const S = [
+  { name: 'Overview', rgb: [124,108,255], sub: 'Good evening, <b>Mira</b> — 3 things need you',
+    plates: [['Active projects','12','',  'ATL · NWD · HLO · ORB', .62], ['Sprint 42','68','%','6 days left', .68], ['Due this week','7','', '2 waiting on review', .35]] },
+  { name: 'Projects', rgb: [255,111,181], sub: '<b>4 projects</b> · 2 shipping this month',
+    plates: [['ATL · Atlas','84','%','Web app · Leo', .84], ['NWD · Northwind','52','%','Mobile · Sana', .52], ['ORB · Orbit','31','%','Platform · Mira', .31]] },
+  { name: 'Inbox', rgb: [63,224,208], sub: '<b>23 unread</b> · 5 mention you',
+    plates: [['Unread','23','',  'Oldest · 2 h ago', .46], ['Mentions','5','', 'Leo in ATL-212', .25], ['Approvals','2','', 'Release v1.0.3', .5]] },
+  { name: 'Calendar', rgb: [255,181,71], sub: 'Next · <b>Design review</b> at 14:30',
+    plates: [['Today','4','', '2 h of meetings', .5], ['Focus left','3.5','h','Until 18:00', .44], ['This week','16','', '3 with clients', .64]] },
+  { name: 'Settings', rgb: [255,122,69], sub: 'Workspace · <b>Veraetogrex</b>',
+    plates: [['Members','18','', '3 invites pending', .72], ['Integrations','6','', 'Git · Figma · Slack', .6], ['Storage','41','%','of 200 GB', .41]] },
+];
+
+// ---- geometry (stage px) ----
+const X0 = 360, X1 = 1080, T = 704, B = 812, R = 26;
+const XS = [464, 592, 720, 848, 976], STEP = 128;
+const W = 78, D = 46, BEAD_R = 34;
+const BEAD_Y = T + 4;
+
+// ---- build ----
+const iconsEl = $('#icons'), bead = $('#bead');
+const icEls = S.map((sec, i) => {
+  const b = document.createElement('button');
+  b.className = 'ic'; b.style.left = (XS[i] - X0) + 'px';
+  b.innerHTML = svgI(i) + `<span>${sec.name}</span>`;
+  b.setAttribute('aria-label', sec.name);
+  b.addEventListener('click', () => go(i));
+  iconsEl.appendChild(b); return b;
+});
+const beadIcons = S.map((_, i) => { bead.insertAdjacentHTML('beforeend', svgI(i, 2.1)); return bead.lastElementChild; });
+const plateEls = [0, 1, 2].map(() => { const p = document.createElement('div'); p.className = 'plate'; p.innerHTML = '<div class="in"></div><div class="note"></div><div class="bar"><i></i></div>'; $('#plates').appendChild(p); return p; });
+
+// ---- state ----
+const st = { bx: XS[0], bv: 0, target: XS[0], drag: false, dragX: XS[0], grabOff: 0, nx: XS[0], nv: 0, lift: 0, lv: 0, shown: 0, clickTarget: 0, fromIdx: 0 };
+
+function fillPlates(i, animate) {
+  const sec = S[i];
+  plateEls.forEach((p, k) => {
+    const [kk, v, unit, note, frac] = sec.plates[k];
+    const inn = p.querySelector('.in');
+    inn.innerHTML = `<div class="k">${kk}</div><div class="v">${v}${unit ? `<small>${unit}</small>` : ''}</div>`;
+    p.querySelector('.note').textContent = note;
+    p.querySelector('.bar i').style.transform = `scaleX(${frac})`;
+    if (animate) {
+      inn.animate([{ transform: 'translateY(12px)', opacity: .15 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: k * 35, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+      p.querySelector('.note').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 40 + k * 35, fill: 'backwards' });
+    }
+  });
+}
+function setSection(i, dir, animate = true) {
+  if (i === st.shown && animate) return;
+  const tbox = $('#tbox');
+  const old = tbox.querySelector('.t.cur');
+  const n = document.createElement('div'); n.className = 't cur'; n.textContent = S[i].name;
+  tbox.appendChild(n);
+  $('#idx').textContent = `0${i + 1} / 05`;
+  $('#sub').innerHTML = S[i].sub;
+  icEls.forEach((e, k) => e.classList.toggle('on', k === i));
+  if (animate) {
+    const dy = dir >= 0 ? 1 : -1;
+    const ez = 'cubic-bezier(.2,.8,.2,1)', dur = st.drag ? 240 : 380;
+    n.animate([{ transform: `translateY(${dy * 100}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: dur, easing: ez, fill: 'backwards' });
+    if (old) { old.classList.remove('cur'); const a = old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${-dy * 100}%)`, opacity: 0 }], { duration: dur, easing: ez, fill: 'forwards' }); a.onfinish = () => old.remove(); }
+    $('#sub').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: ez });
+  } else if (old) old.remove();
+  fillPlates(i, animate);
+  st.shown = i;
+}
+
+// ---- colour by position ----
+// interpolate in HSL (shortest hue path) so mixes stay saturated instead of going grey
+function toHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+function toRgb([h, s, l]) {
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [r, g, b].map(v => Math.round((v + m) * 255));
+}
+const HSL = S.map(x => toHsl(x.rgb));
+function colorAt(p) {
+  const a = Math.max(0, Math.min(4, p)), i = Math.min(3, Math.floor(a)), f = a - i;
+  const [h0, s0, l0] = HSL[i], [h1, s1, l1] = HSL[i + 1];
+  let dh = h1 - h0; if (dh > 180) dh -= 360; if (dh < -180) dh += 360;
+  // never pass through the green band (off-palette): take the long way round via violet instead
+  const crossesGreen = (a, d) => { for (let k = 0; k <= 12; k++) { const h = ((a + d * k / 12) % 360 + 360) % 360; if (h > 75 && h < 165) return true; } return false; };
+  if (crossesGreen(h0, dh)) dh = dh > 0 ? dh - 360 : dh + 360;
+  return toRgb([(h0 + dh * f + 360) % 360, s0 + (s1 - s0) * f, l0 + (l1 - l0) * f]);
+}
+
+// ---- the liquid outline ----
+function dockPath(cA, cB, depth) {
+  // dip spans from shoulder L to shoulder Rr, flat-bottom between cA..cB (equal when at rest)
+  const minL = X0 + R, maxR = X1 - R;
+  // keep the dip inside the straight part of the top edge; it narrows instead of folding
+  cA = Math.max(minL + 40, cA); cB = Math.min(maxR - 40, Math.max(cA, cB));
+  const L = Math.max(minL, cA - W), Rr = Math.min(maxR, cB + W);
+  const y = T + depth;
+  const kl = cA - L, kr = Rr - cB;
+  // horizontal tangents at the shoulders and at the bottom => C1 continuous
+  return `M${X0},${T + R}A${R},${R} 0 0 1 ${X0 + R},${T}L${L.toFixed(2)},${T}` +
+    `C${(L + kl * .5).toFixed(2)},${T} ${(cA - kl * .42).toFixed(2)},${y.toFixed(2)} ${cA.toFixed(2)},${y.toFixed(2)}` +
+    `L${cB.toFixed(2)},${y.toFixed(2)}` +
+    `C${(cB + kr * .42).toFixed(2)},${y.toFixed(2)} ${(Rr - kr * .5).toFixed(2)},${T} ${Rr.toFixed(2)},${T}` +
+    `L${X1 - R},${T}A${R},${R} 0 0 1 ${X1},${T + R}L${X1},${B - R}A${R},${R} 0 0 1 ${X1 - R},${B}L${X0 + R},${B}A${R},${R} 0 0 1 ${X0},${B - R}Z`;
+}
+const dockFill = $('#dockFill'), dockEdge = $('#dockEdge'), dockPool = $('#dockPool'), shadow = $('#shadow');
+const eStops = ['#e1', '#e2', '#e3'].map(s => $(s)), pool = $('#pool'), p0 = $('#p0'), p1 = $('#p1');
+
+function render() {
+  const p = (st.bx - XS[0]) / STEP;
+  // no colour overshoot past the clicked target (keeps the spring from tinting toward the next section)
+  let cp = p;
+  if (!st.drag) cp = st.fromIdx <= st.clickTarget ? Math.min(p, st.clickTarget) : Math.max(p, st.clickTarget);
+  const [r, g, b] = colorAt(cp);
+  stage.style.setProperty('--c', `${r},${g},${b}`);
+  const hex = `rgb(${r},${g},${b})`;
+  // dip: centre lags behind the bead -> stretched meniscus while moving
+  const cA = Math.min(st.bx, st.nx), cB = Math.max(st.bx, st.nx);
+  const gap = cB - cA;
+  const depth = D * (1 - Math.min(.32, gap / 260)) + st.lift * 4;
+  const d = dockPath(cA, cB, depth);
+  dockFill.setAttribute('d', d); dockEdge.setAttribute('d', d); dockPool.setAttribute('d', d);
+  // coloured edge around the dip
+  const mid = ((cA + cB) / 2 - X0) / (X1 - X0), spread = (W + gap / 2 + 40) / (X1 - X0);
+  eStops[0].setAttribute('offset', Math.max(0, mid - spread)); eStops[1].setAttribute('offset', mid); eStops[2].setAttribute('offset', Math.min(1, mid + spread));
+  eStops[1].setAttribute('stop-color', hex);
+  pool.setAttribute('gradientTransform', `translate(${(cA + cB) / 2} ${T + depth - 4}) scale(${120 + gap * .6} 64)`);
+  p0.setAttribute('stop-color', hex); p1.setAttribute('stop-color', hex);
+  // bead
+  const lift = st.lift, sx = 1 + lift * .08 + Math.min(.12, Math.abs(st.bv) / 12000), sy = 1 + lift * .08 - Math.min(.07, Math.abs(st.bv) / 20000);
+  bead.style.transform = `translate(${st.bx}px,${BEAD_Y - lift * 10}px) scale(${sx},${sy})`;
+  shadow.style.transform = `translate(${(cA + cB) / 2}px,${T + depth - 6}px) scale(${1 + gap / 120},1)`;
+  shadow.style.opacity = .7 - lift * .3;
+  beadIcons.forEach((e, i) => e.style.opacity = Math.max(0, 1 - Math.abs(p - i) * 1.8));
+  icEls.forEach((e, i) => e.querySelector('svg').style.opacity = Math.min(1, Math.max(0, (Math.abs(st.bx - XS[i]) - 22) / 60)));
+  // header follows the bead while dragging, the click target otherwise
+  const sec = st.drag ? Math.round(Math.max(0, Math.min(4, p))) : st.clickTarget;
+  if (sec !== st.shown) setSection(sec, sec - st.shown);
+}
+
+// ---- physics loop (own rAF, survives Stage resets) ----
+let last = performance.now();
+function springStep(x, v, target, w, z, dt) { const a = -w * w * (x - target) - 2 * z * w * v; v += a * dt; x += v * dt; return [x, v]; }
+function tick(now) {
+  let dt = Math.min(.034, (now - last) / 1000); last = now;
+  const n = 4, h = dt / n;
+  for (let k = 0; k < n; k++) {
+    if (st.drag) {
+      const px = st.dragX, lo = XS[0], hi = XS[4];
+      const want = px < lo ? lo - 46 * (1 - Math.exp(-(lo - px) / 90)) : px > hi ? hi + 46 * (1 - Math.exp(-(px - hi) / 90)) : px;
+      const nb = st.bx + (want - st.bx) * (1 - Math.exp(-h * 38));
+      st.bv = (nb - st.bx) / h; st.bx = nb;
+    } else {
+      [st.bx, st.bv] = springStep(st.bx, st.bv, st.target, 12.5, .6, h);
+    }
+    [st.nx, st.nv] = springStep(st.nx, st.nv, st.bx, 19, .95, h);
+    [st.lift, st.lv] = springStep(st.lift, st.lv, st.drag ? 1 : 0, 18, .55, h);
+  }
+  render();
+  requestAnimationFrame(tick);
+}
+
+// ---- interaction ----
+function go(i) {
+  i = Math.max(0, Math.min(4, i));
+  st.fromIdx = (st.bx - XS[0]) / STEP; st.target = XS[i]; st.clickTarget = i;
+}
+bead.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const [x] = Stage.toStage(e.clientX, e.clientY);
+  st.drag = true; st.grabOff = x - st.bx; st.dragX = st.bx;
+  bead.classList.add('drag');
+});
+addEventListener('pointermove', e => {
+  if (!st.drag) return;
+  const [x] = Stage.toStage(e.clientX, e.clientY);
+  st.dragX = x - st.grabOff;
+});
+function release() {
+  if (!st.drag) return;
+  st.drag = false; bead.classList.remove('drag');
+  const p = (st.bx - XS[0]) / STEP, i = Math.round(Math.max(0, Math.min(4, p)));
+  st.fromIdx = p; st.clickTarget = i; st.target = XS[i];
+  washOut(i);
+}
+
+// payoff: the snapped section's colour washes over the whole screen from the bead
+function washOut(i) {
+  const c = S[i].rgb.join(','), w = $('#wash'), ring = $('#wring'), s = Stage.ctx();
+  w.style.background = `radial-gradient(closest-side,rgba(${c},.42),rgba(${c},.22) 50%,rgba(${c},.06) 80%,rgba(${c},0))`;
+  w.style.left = XS[i] + 'px'; w.style.top = BEAD_Y + 'px';
+  ring.style.left = XS[i] + 'px'; ring.style.top = BEAD_Y + 'px';
+  s.tween(1000, (t, p) => {
+    w.style.transform = `scale(${.04 + .96 * t})`;
+    w.style.opacity = p < .12 ? p / .12 : 1 - Math.pow((p - .12) / .88, 1.6);
+    const d = 60 + 1500 * s.ease.out(p);
+    Object.assign(ring.style, { width: d + 'px', height: d + 'px', marginLeft: -d / 2 + 'px', marginTop: -d / 2 + 'px', opacity: .85 * (1 - p) });
+  }, s.ease.out).catch(() => {});
+}
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { e.preventDefault(); go(st.clickTarget + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(st.clickTarget - 1); }
+});
+
+function reset() {
+  Object.assign(st, { bx: XS[0], bv: 0, target: XS[0], drag: false, dragX: XS[0], grabOff: 0, nx: XS[0], nv: 0, lift: 0, lv: 0, clickTarget: 0, fromIdx: 0 });
+  bead.classList.remove('drag');
+  $('#wash').style.opacity = 0; $('#wring').style.opacity = 0;
+  $('#tbox').innerHTML = '';
+  setSection(0, 0, false);
+  render();
+}
+reset();
+requestAnimationFrame(t => { last = t; tick(t); });
+
+const START = [596, 612];
+Stage.init({
+  reset,
+  cursorStart: START,
+  async demo(s) {
+    const t0 = performance.now();
+    await s.wait(80);
+    await s.click(icEls[2], { ms: 400, dy: -6 });            // ≈0.5 s — Inbox
+    await s.until(t0, 860);
+    await s.click(icEls[4], { ms: 420, dy: -6, arc: .1 });   // ≈1.4 s — Settings
+    await s.until(t0, 2250);
+    await s.move(bead, 480, { arc: .18 });                    // to the bead during the pause
+    await s.until(t0, 2800);
+    // drag the bead all the way back, slightly past Overview
+    await s.drag([[XS[0] - 80, BEAD_Y + 2]], 1440, { pre: 70, post: 40, ease: t => t * t * (3 - 2 * t) });   // release ≈4.35 s
+    await s.wait(380);                                         // spring settles over Overview
+    await s.move(START, 600, { arc: -.14 });
+    await s.until(t0, 5600);
+  },
+});
+</script>
+</body>
+</html>

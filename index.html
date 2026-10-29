@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meniscus Dock — veraetogrex_portfolio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Meniscus Dock · zero dependencies · github.com/veraetogrex-portfolio -->
+  <section class="mn" id="meniscus" aria-label="Workspace navigation">
+    <div class="mn-ambient"></div>
+
+    <header class="mn-head">
+      <p class="mn-kicker"><i></i>Veraetogrex · <b class="mn-idx">01 / 05</b></p>
+      <div class="mn-title" aria-live="polite"></div>
+      <p class="mn-sub"></p>
+    </header>
+
+    <div class="mn-dock">
+      <div class="mn-glow"></div>
+      <svg class="mn-shape" viewBox="0 0 800 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="mn-fill" x1="0" y1="30" x2="0" y2="148" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#1a1c27"/><stop offset="1" stop-color="#0e1017"/>
+          </linearGradient>
+          <linearGradient id="mn-edge" x1="40" y1="0" x2="760" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="rgba(255,255,255,.10)"/>
+            <stop class="mn-e" offset=".3" stop-color="rgba(255,255,255,.14)"/>
+            <stop class="mn-e" offset=".5" stop-color="#7c6cff"/>
+            <stop class="mn-e" offset=".7" stop-color="rgba(255,255,255,.14)"/>
+            <stop offset="1" stop-color="rgba(255,255,255,.10)"/>
+          </linearGradient>
+          <radialGradient id="mn-pool" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse">
+            <stop class="mn-p" offset="0" stop-color="#7c6cff" stop-opacity=".30"/>
+            <stop class="mn-p" offset="1" stop-color="#7c6cff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <path class="mn-path" fill="url(#mn-fill)"/>
+        <path class="mn-path" fill="url(#mn-pool)"/>
+        <path class="mn-path" fill="none" stroke="url(#mn-edge)" stroke-width="1.6"/>
+      </svg>
+      <div class="mn-shadow"></div>
+      <nav class="mn-icons"></nav>
+      <div class="mn-bead" role="slider" tabindex="0" aria-label="Active section"
+           aria-valuemin="1" aria-valuemax="5" aria-valuenow="1"></div>
+    </div>
+
+    <p class="mn-hint">Drag the bead · ← → keys</p>
+  </section>
+  <div class="mn-wash" aria-hidden="true"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
