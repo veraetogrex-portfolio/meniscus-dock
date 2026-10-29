@@ -2,7 +2,7 @@
 
 **The tab doesn't slide. The dock melts around it.**
 
-![Meniscus Dock preview](preview.jpg)
+![Meniscus Dock preview](preview.gif)
 
 **Live demo:** [veraetogrex-portfolio.github.io/meniscus-dock](https://veraetogrex-portfolio.github.io/meniscus-dock/) · **Mockup:** [full-screen version](https://veraetogrex-portfolio.github.io/meniscus-dock/mockup/meniscus-dock.html)
 
